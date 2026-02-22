@@ -18,7 +18,6 @@ const CATEGORIES = [
   "Politics",
   "Business",
 ];
-const BADGE_ICONS = { admin: "⚙️", pro: "⭐", plus: "✨", verified: "✔️" };
 const PLAN_CREDITS = { free: 5, plus: 20, pro: Infinity };
 
 const api = async (method, path, body, token) => {
@@ -42,23 +41,84 @@ const timeAgo = (ts) => {
   if (d < 86400) return `vor ${Math.floor(d / 3600)}h`;
   return `vor ${Math.floor(d / 86400)}d`;
 };
-const avatar = (u) => u?.avatar || u?.username?.[0]?.toUpperCase() || "?";
+const avatarChar = (u) => u?.avatar || u?.username?.[0]?.toUpperCase() || "?";
 
-// Count unread messages across all conversations
-const countUnread = (conversations, userId, seenRef) => {
-  let count = 0;
-  for (const conv of conversations) {
-    const msgs = conv.messages || [];
-    const lastMsg = msgs[msgs.length - 1];
-    if (!lastMsg) continue;
-    if (lastMsg.senderId === userId) continue;
-    const seenCount = seenRef.current[conv.id] || 0;
-    const unread = msgs.filter((m) => m.senderId !== userId).length - seenCount;
-    if (unread > 0) count += unread;
-  }
-  return count;
+// ── SVG Icons ─────────────────────────────────────────────────────────────────
+const PATHS = {
+  home: "M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25",
+  search:
+    "M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803a7.5 7.5 0 0010.607 10.607z",
+  message:
+    "M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z",
+  user: "M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z",
+  star: "M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z",
+  settings:
+    "M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z M15 12a3 3 0 11-6 0 3 3 0 016 0z",
+  logout:
+    "M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75",
+  heart:
+    "M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z",
+  comment:
+    "M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z",
+  send: "M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5",
+  menu: "M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5",
+  close: "M6 18L18 6M6 6l12 12",
+  back: "M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18",
+  check: "M4.5 12.75l6 6 9-13.5",
+  edit: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10",
+  trash:
+    "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0",
+  follow:
+    "M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z",
+  unfollow:
+    "M22 10.5h-6m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z",
+  lock: "M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z",
+  card: "M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z",
 };
 
+const Icon = ({ name, size = 20, color = "currentColor", filled = false }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill={filled ? color : "none"}
+    stroke={color}
+    strokeWidth={1.8}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d={PATHS[name] || ""} />
+  </svg>
+);
+
+const Badge = ({ type }) => {
+  const labels = { admin: "A", pro: "P", plus: "+", verified: "V" };
+  const colors = { admin: "#666", pro: "#aaa", plus: "#aaa", verified: "#aaa" };
+  if (!type || !labels[type]) return null;
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 15,
+        height: 15,
+        borderRadius: "50%",
+        background: colors[type],
+        color: "#000",
+        fontSize: 8,
+        fontWeight: 800,
+        marginLeft: 3,
+        flexShrink: 0,
+      }}
+    >
+      {labels[type]}
+    </span>
+  );
+};
+
+// ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const [token, setToken] = useState(() => localStorage.getItem("sn_token"));
   const [currentUser, setCurrentUser] = useState(null);
@@ -71,9 +131,9 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const activeConvRef = useRef(null);
-  const seenMessagesRef = useRef({}); // { convId: count of seen messages from others }
+  const seenRef = useRef({});
   activeConvRef.current = activeConv;
 
   const showToast = (msg, type = "info") => {
@@ -89,9 +149,7 @@ export default function App() {
       ]);
       setUsers(us);
       setPosts(ps);
-    } catch (e) {
-      console.error("loadPublic:", e);
-    }
+    } catch {}
   };
 
   const loadPrivate = async (tok) => {
@@ -103,7 +161,7 @@ export default function App() {
       setCurrentUser(u);
       setConversations(cs);
       return u;
-    } catch (e) {
+    } catch {
       localStorage.removeItem("sn_token");
       setToken(null);
       return null;
@@ -121,14 +179,11 @@ export default function App() {
   useEffect(() => {
     loadData(token);
   }, []);
-
-  // Auto-refresh posts every 10s
   useEffect(() => {
-    const t = setInterval(() => loadPublic(), 10000);
+    const t = setInterval(loadPublic, 10000);
     return () => clearInterval(t);
   }, []);
 
-  // Auto-refresh conversations every 3s + update unread count
   useEffect(() => {
     if (!token || !currentUser) return;
     const t = setInterval(async () => {
@@ -139,13 +194,12 @@ export default function App() {
           const updated = cs.find((c) => c.id === activeConvRef.current.id);
           if (updated) setActiveConv(updated);
         }
-        // Calculate unread
-        const uid = currentUser.id;
         let count = 0;
         for (const conv of cs) {
-          const msgs = (conv.messages || []).filter((m) => m.senderId !== uid);
-          const seen = seenMessagesRef.current[conv.id] || 0;
-          count += Math.max(0, msgs.length - seen);
+          const msgs = (conv.messages || []).filter(
+            (m) => m.senderId !== currentUser.id,
+          );
+          count += Math.max(0, msgs.length - (seenRef.current[conv.id] || 0));
         }
         setUnreadCount(count);
       } catch {}
@@ -153,21 +207,17 @@ export default function App() {
     return () => clearInterval(t);
   }, [token, currentUser]);
 
-  // Mark messages as seen when viewing a conversation
   const markSeen = (conv) => {
     if (!conv || !currentUser) return;
-    const msgs = (conv.messages || []).filter(
+    seenRef.current[conv.id] = (conv.messages || []).filter(
       (m) => m.senderId !== currentUser.id,
-    );
-    seenMessagesRef.current[conv.id] = msgs.length;
-    // Recalculate unread
+    ).length;
     let count = 0;
     for (const c of conversations) {
-      const cMsgs = (c.messages || []).filter(
+      const msgs = (c.messages || []).filter(
         (m) => m.senderId !== currentUser.id,
       );
-      const seen = seenMessagesRef.current[c.id] || 0;
-      count += Math.max(0, cMsgs.length - seen);
+      count += Math.max(0, msgs.length - (seenRef.current[c.id] || 0));
     }
     setUnreadCount(count);
   };
@@ -183,7 +233,7 @@ export default function App() {
       setCurrentUser(user);
       await loadData(tok);
       setScreen("feed");
-      showToast(`Willkommen zurück, ${user.username}!`, "success");
+      showToast(`Willkommen, ${user.username}!`, "success");
     } catch (e) {
       showToast(e.message, "error");
     }
@@ -197,7 +247,7 @@ export default function App() {
       setCurrentUser(user);
       await loadData(tok);
       setScreen("feed");
-      showToast("Willkommen bei SocialNet! 🎉", "success");
+      showToast("Willkommen bei SocialNet!", "success");
     } catch (e) {
       showToast(e.message, "error");
     }
@@ -209,7 +259,7 @@ export default function App() {
     setCurrentUser(null);
     setScreen("feed");
     setUnreadCount(0);
-    seenMessagesRef.current = {};
+    seenRef.current = {};
   };
 
   const createPost = async (text, cats) => {
@@ -279,7 +329,7 @@ export default function App() {
       setActiveConv(conv);
       markSeen(conv);
       setScreen("messages");
-      setMobileMenuOpen(false);
+      setMenuOpen(false);
       if (currentUser.plan !== "pro")
         setCurrentUser((prev) => ({
           ...prev,
@@ -314,7 +364,7 @@ export default function App() {
     try {
       const user = await api("PATCH", "/users/me", data, token);
       setCurrentUser(user);
-      showToast("Profil gespeichert!", "success");
+      showToast("Gespeichert!", "success");
     } catch (e) {
       showToast(e.message, "error");
     }
@@ -335,7 +385,7 @@ export default function App() {
     try {
       await api("DELETE", `/admin/users/${uid}`, null, token);
       setUsers((prev) => prev.filter((u) => u.id !== uid));
-      showToast("User gelöscht", "success");
+      showToast("Gelöscht", "success");
     } catch (e) {
       showToast(e.message, "error");
     }
@@ -350,15 +400,31 @@ export default function App() {
       badge,
       credits: PLAN_CREDITS[plan],
     }));
-    showToast(`Upgrade auf ${plan} erfolgreich! 🎉`, "success");
+    showToast(`Upgrade auf ${plan} erfolgreich!`, "success");
     setScreen("feed");
   };
 
   const navTo = (s) => {
     setScreen(s);
-    setMobileMenuOpen(false);
+    setMenuOpen(false);
     if (s !== "profile") setViewUser(null);
   };
+
+  const NAV = [
+    { id: "feed", icon: "home", label: "Feed" },
+    { id: "explore", icon: "search", label: "Erkunden" },
+    {
+      id: "messages",
+      icon: "message",
+      label: "Nachrichten",
+      badge: unreadCount,
+    },
+    { id: "profile", icon: "user", label: "Profil" },
+    { id: "upgrade", icon: "star", label: "Upgrade" },
+    ...(currentUser?.id === "admin"
+      ? [{ id: "admin", icon: "settings", label: "Admin" }]
+      : []),
+  ];
 
   if (loading)
     return (
@@ -395,201 +461,190 @@ export default function App() {
       <style>{CSS}</style>
       {toast && <Toast toast={toast} />}
 
-      {/* Mobile Top Bar */}
-      <div style={S.mobileBar}>
-        <div style={S.logo}>SocialNet</div>
-        <button
-          style={S.hamburger}
-          onClick={() => setMobileMenuOpen((o) => !o)}
+      {/* Sidebar overlay – z-index 300, above header (100) */}
+      {menuOpen && <div style={S.overlay} onClick={() => setMenuOpen(false)} />}
+      <aside style={{ ...S.sidebar, ...(menuOpen ? S.sidebarOpen : {}) }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
         >
-          {mobileMenuOpen ? "✕" : "☰"}
+          <div style={S.logo}>SocialNet</div>
+          <button
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#888",
+              display: "flex",
+            }}
+            onClick={() => setMenuOpen(false)}
+          >
+            <Icon name="close" size={18} color="#888" />
+          </button>
+        </div>
+        <div style={S.sideUserCard}>
+          <div style={S.avatarSm}>{avatarChar(currentUser)}</div>
+          <div style={{ overflow: "hidden" }}>
+            <div
+              style={{
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              {currentUser.username}
+              <Badge type={currentUser.badge} />
+            </div>
+            <div style={{ fontSize: 11, color: "#888" }}>
+              {currentUser.plan === "pro"
+                ? "Pro"
+                : currentUser.plan === "plus"
+                  ? `Plus · ${currentUser.credits}cr`
+                  : `Free · ${currentUser.credits}cr`}
+            </div>
+          </div>
+        </div>
+        <nav
+          style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}
+        >
+          {NAV.map((i) => (
+            <button
+              key={i.id}
+              style={{
+                ...S.navBtn,
+                ...(screen === i.id ? S.navBtnActive : {}),
+              }}
+              onClick={() => navTo(i.id)}
+            >
+              <span
+                style={{
+                  position: "relative",
+                  display: "inline-flex",
+                  flexShrink: 0,
+                }}
+              >
+                <Icon
+                  name={i.icon}
+                  size={18}
+                  color={screen === i.id ? "#4f9cf9" : "#888"}
+                />
+                {i.badge > 0 && (
+                  <span style={S.badge}>{i.badge > 99 ? "99+" : i.badge}</span>
+                )}
+              </span>
+              {i.label}
+            </button>
+          ))}
+        </nav>
+        <button style={S.logoutBtn} onClick={logout}>
+          <Icon name="logout" size={16} color="#666" /> Abmelden
+        </button>
+      </aside>
+
+      {/* Top bar – z-index 100 */}
+      <div style={S.topBar}>
+        <div style={S.logo}>SocialNet</div>
+        <button style={S.hamburger} onClick={() => setMenuOpen((o) => !o)}>
+          <Icon name="menu" size={20} color="#fff" />
         </button>
       </div>
 
-      <div style={S.layout}>
-        {/* Sidebar – hidden on mobile unless menu open */}
-        <aside
-          style={{ ...S.sidebar, ...(mobileMenuOpen ? S.sidebarOpen : {}) }}
-        >
-          <div style={{ ...S.logo, display: "none" }} className="desktop-logo">
-            SocialNet
-          </div>
-          <div style={S.sideUserCard}>
-            <div style={S.avatarSm}>{avatar(currentUser)}</div>
-            <div style={{ overflow: "hidden" }}>
-              <div
-                style={{
-                  color: "#fff",
-                  fontWeight: 600,
-                  fontSize: 13,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {currentUser.username}{" "}
-                {currentUser.badge && BADGE_ICONS[currentUser.badge]}
-              </div>
-              <div style={{ fontSize: 11, color: "#888" }}>
-                {currentUser.plan === "pro"
-                  ? "Pro – ∞"
-                  : currentUser.plan === "plus"
-                    ? `Plus – ${currentUser.credits}cr`
-                    : `Free – ${currentUser.credits}cr`}
-              </div>
-            </div>
-          </div>
-          <nav
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 4,
-              flex: 1,
+      {/* Main */}
+      <main style={S.main}>
+        {screen === "feed" && (
+          <FeedScreen
+            currentUser={currentUser}
+            users={users}
+            posts={posts}
+            onPost={createPost}
+            onLike={toggleLike}
+            onComment={addComment}
+            onViewUser={(u) => {
+              setViewUser(u);
+              setScreen("profile");
+              setMenuOpen(false);
             }}
-          >
-            {[
-              { id: "feed", icon: "🏠", label: "Feed" },
-              { id: "explore", icon: "🔍", label: "Erkunden" },
-              {
-                id: "messages",
-                icon: "💬",
-                label: "Nachrichten",
-                badge: unreadCount,
-              },
-              { id: "profile", icon: "👤", label: "Profil" },
-              { id: "upgrade", icon: "⭐", label: "Upgrade" },
-              ...(currentUser.id === "admin"
-                ? [{ id: "admin", icon: "⚙️", label: "Admin" }]
-                : []),
-            ].map((i) => (
-              <button
-                key={i.id}
-                style={{
-                  ...S.navBtn,
-                  ...(screen === i.id ? S.navBtnActive : {}),
-                }}
-                onClick={() => navTo(i.id)}
-              >
-                <span
-                  style={{
-                    position: "relative",
-                    display: "inline-flex",
-                    alignItems: "center",
-                  }}
-                >
-                  {i.icon}
-                  {i.badge > 0 && (
-                    <span style={S.badge}>
-                      {i.badge > 99 ? "99+" : i.badge}
-                    </span>
-                  )}
-                </span>
-                {i.label}
-              </button>
-            ))}
-          </nav>
-          <button style={S.logoutBtn} onClick={logout}>
-            🚪 Abmelden
-          </button>
-        </aside>
-
-        {/* Overlay for mobile menu */}
-        {mobileMenuOpen && (
-          <div style={S.overlay} onClick={() => setMobileMenuOpen(false)} />
+            onMessage={startConversation}
+          />
         )}
+        {screen === "explore" && (
+          <ExploreScreen
+            currentUser={currentUser}
+            users={users}
+            onViewUser={(u) => {
+              setViewUser(u);
+              setScreen("profile");
+              setMenuOpen(false);
+            }}
+          />
+        )}
+        {screen === "profile" && (
+          <ProfileScreen
+            viewUser={viewUser || currentUser}
+            currentUser={currentUser}
+            users={users}
+            posts={posts}
+            onLike={toggleLike}
+            onComment={addComment}
+            onFollow={follow}
+            onMessage={startConversation}
+            onUpdate={updateProfile}
+            isOwn={!viewUser || viewUser.id === currentUser.id}
+          />
+        )}
+        {screen === "messages" && (
+          <MessagesScreen
+            currentUser={currentUser}
+            users={users}
+            conversations={conversations}
+            activeConv={activeConv}
+            setActiveConv={(c) => {
+              setActiveConv(c);
+              if (c) markSeen(c);
+            }}
+            onSend={sendMessage}
+            onViewUser={(u) => {
+              setViewUser(u);
+              setScreen("profile");
+            }}
+          />
+        )}
+        {screen === "upgrade" && (
+          <UpgradeScreen currentUser={currentUser} onUpgrade={upgrade} />
+        )}
+        {screen === "admin" && currentUser.id === "admin" && (
+          <AdminPanel
+            users={users}
+            posts={posts}
+            onDelete={adminDelete}
+            onSave={adminSetPlan}
+          />
+        )}
+      </main>
 
-        <main style={S.main}>
-          {screen === "feed" && (
-            <FeedScreen
-              currentUser={currentUser}
-              users={users}
-              posts={posts}
-              onPost={createPost}
-              onLike={toggleLike}
-              onComment={addComment}
-              onViewUser={(u) => {
-                setViewUser(u);
-                setScreen("profile");
-                setMobileMenuOpen(false);
-              }}
-              onMessage={startConversation}
-            />
-          )}
-          {screen === "explore" && (
-            <ExploreScreen
-              currentUser={currentUser}
-              users={users}
-              onViewUser={(u) => {
-                setViewUser(u);
-                setScreen("profile");
-                setMobileMenuOpen(false);
-              }}
-            />
-          )}
-          {screen === "profile" && (
-            <ProfileScreen
-              viewUser={viewUser || currentUser}
-              currentUser={currentUser}
-              users={users}
-              posts={posts}
-              onLike={toggleLike}
-              onComment={addComment}
-              onFollow={follow}
-              onMessage={startConversation}
-              onUpdate={updateProfile}
-              isOwn={!viewUser || viewUser.id === currentUser.id}
-            />
-          )}
-          {screen === "messages" && (
-            <MessagesScreen
-              currentUser={currentUser}
-              users={users}
-              conversations={conversations}
-              activeConv={activeConv}
-              setActiveConv={(c) => {
-                setActiveConv(c);
-                if (c) markSeen(c);
-              }}
-              onSend={sendMessage}
-              onViewUser={(u) => {
-                setViewUser(u);
-                setScreen("profile");
-              }}
-            />
-          )}
-          {screen === "upgrade" && (
-            <UpgradeScreen currentUser={currentUser} onUpgrade={upgrade} />
-          )}
-          {screen === "admin" && currentUser.id === "admin" && (
-            <AdminPanel
-              users={users}
-              posts={posts}
-              onDelete={adminDelete}
-              onSave={adminSetPlan}
-            />
-          )}
-        </main>
-      </div>
-
-      {/* Mobile Bottom Nav */}
-      <nav style={S.bottomNav}>
-        {[
-          { id: "feed", icon: "🏠" },
-          { id: "explore", icon: "🔍" },
-          { id: "messages", icon: "💬", badge: unreadCount },
-          { id: "profile", icon: "👤" },
-          { id: "upgrade", icon: "⭐" },
-        ].map((i) => (
+      {/* Bottom nav – hidden on desktop via CSS class */}
+      <nav className="bottom-nav" style={S.bottomNav}>
+        {NAV.slice(0, 5).map((i) => (
           <button
             key={i.id}
             style={{
               ...S.bottomNavBtn,
-              ...(screen === i.id ? S.bottomNavBtnActive : {}),
+              ...(screen === i.id ? S.bottomNavActive : {}),
             }}
             onClick={() => navTo(i.id)}
           >
-            <span style={{ position: "relative" }}>
-              {i.icon}
+            <span style={{ position: "relative", display: "inline-flex" }}>
+              <Icon
+                name={i.icon}
+                size={22}
+                color={screen === i.id ? "#4f9cf9" : "#555"}
+              />
               {i.badge > 0 && (
                 <span style={S.badgeSm}>{i.badge > 99 ? "99+" : i.badge}</span>
               )}
@@ -601,6 +656,7 @@ export default function App() {
   );
 }
 
+// ── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ toast }) {
   const colors = { info: "#4f9cf9", success: "#22c55e", error: "#ef4444" };
   return (
@@ -610,11 +666,12 @@ function Toast({ toast }) {
   );
 }
 
+// ── Public Feed ───────────────────────────────────────────────────────────────
 function PublicFeedScreen({ users, posts, onLoginRequired, onSwitchRegister }) {
   const [filter, setFilter] = useState("all");
   const getUser = (id) => users.find((u) => u.id === id);
   const filtered = posts
-    .filter((p) => (filter === "all" ? true : p.categories?.includes(filter)))
+    .filter((p) => filter === "all" || p.categories?.includes(filter))
     .filter((p) => !!getUser(p.authorId));
 
   return (
@@ -640,7 +697,7 @@ function PublicFeedScreen({ users, posts, onLoginRequired, onSwitchRegister }) {
       <div style={S.publicHero}>
         <h1
           style={{
-            fontSize: "clamp(22px, 5vw, 36px)",
+            fontSize: "clamp(22px,5vw,36px)",
             fontWeight: 800,
             margin: "0 0 10px",
             letterSpacing: -1,
@@ -690,20 +747,25 @@ function PublicFeedScreen({ users, posts, onLoginRequired, onSwitchRegister }) {
             </button>
           ))}
         </div>
-        {filtered.length === 0 && (
-          <div style={S.empty}>Noch keine Posts 🌙</div>
-        )}
+        {filtered.length === 0 && <div style={S.empty}>Noch keine Posts</div>}
         {filtered.map((p) => {
           const author = getUser(p.authorId);
           return (
             <div key={p.id} style={S.card}>
               <div style={S.postHeader}>
-                <div style={S.avatarSm}>{avatar(author)}</div>
+                <div style={S.avatarSm}>{avatarChar(author)}</div>
                 <div>
-                  <span style={{ color: "#fff", fontWeight: 600 }}>
-                    {author.username}{" "}
-                    {author.badge && BADGE_ICONS[author.badge]}
-                  </span>
+                  <div
+                    style={{
+                      color: "#fff",
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {author.username}
+                    <Badge type={author.badge} />
+                  </div>
                   <div style={{ fontSize: 11, color: "#666" }}>
                     {timeAgo(p.createdAt)}
                   </div>
@@ -721,10 +783,12 @@ function PublicFeedScreen({ users, posts, onLoginRequired, onSwitchRegister }) {
               )}
               <div style={S.postActions}>
                 <button style={S.actionBtn} onClick={onLoginRequired}>
-                  🤍 {p.likes?.length || 0}
+                  <Icon name="heart" size={16} color="#555" />{" "}
+                  {p.likes?.length || 0}
                 </button>
                 <button style={S.actionBtn} onClick={onLoginRequired}>
-                  💬 {p.comments?.length || 0}
+                  <Icon name="comment" size={16} color="#555" />{" "}
+                  {p.comments?.length || 0}
                 </button>
               </div>
               <div
@@ -736,10 +800,14 @@ function PublicFeedScreen({ users, posts, onLoginRequired, onSwitchRegister }) {
                   fontSize: 13,
                   color: "#4f9cf9",
                   cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                 }}
                 onClick={onLoginRequired}
               >
-                🔒 Einloggen um zu interagieren
+                <Icon name="lock" size={13} color="#4f9cf9" /> Einloggen um zu
+                interagieren
               </div>
             </div>
           );
@@ -749,6 +817,7 @@ function PublicFeedScreen({ users, posts, onLoginRequired, onSwitchRegister }) {
   );
 }
 
+// ── Login ─────────────────────────────────────────────────────────────────────
 function LoginScreen({ onLogin, onSwitch }) {
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -756,7 +825,7 @@ function LoginScreen({ onLogin, onSwitch }) {
     <div style={S.authWrap}>
       <div style={S.authCard}>
         <div style={S.authLogo}>SocialNet</div>
-        <p style={{ color: "#888", textAlign: "center", marginBottom: 28 }}>
+        <p style={{ color: "#888", textAlign: "center", marginBottom: 24 }}>
           Verbinde dich mit der Welt
         </p>
         <input
@@ -799,7 +868,7 @@ function LoginScreen({ onLogin, onSwitch }) {
             textAlign: "center",
             color: "#555",
             fontSize: 12,
-            marginTop: 12,
+            marginTop: 10,
           }}
         >
           Admin: admin@socialnet.de / admin123
@@ -809,6 +878,7 @@ function LoginScreen({ onLogin, onSwitch }) {
   );
 }
 
+// ── Register ──────────────────────────────────────────────────────────────────
 function RegisterScreen({ onRegister, onSwitch }) {
   const [form, setForm] = useState({
     username: "",
@@ -891,6 +961,7 @@ function RegisterScreen({ onRegister, onSwitch }) {
   );
 }
 
+// ── Feed ──────────────────────────────────────────────────────────────────────
 function FeedScreen({
   currentUser,
   users,
@@ -906,7 +977,6 @@ function FeedScreen({
   const [filter, setFilter] = useState("all");
   const [showComment, setShowComment] = useState(null);
   const [commentText, setCommentText] = useState("");
-
   const getUser = (id) => users.find((u) => u.id === id);
   const filtered = posts
     .filter((p) =>
@@ -922,7 +992,7 @@ function FeedScreen({
     <div style={S.page}>
       <div style={S.composer}>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-          <div style={S.avatarSm}>{avatar(currentUser)}</div>
+          <div style={S.avatarSm}>{avatarChar(currentUser)}</div>
           <textarea
             style={{ ...S.textarea, flex: 1 }}
             placeholder="Was denkst du?"
@@ -981,7 +1051,7 @@ function FeedScreen({
           </button>
         ))}
       </div>
-      {filtered.length === 0 && <div style={S.empty}>Keine Posts 🌙</div>}
+      {filtered.length === 0 && <div style={S.empty}>Keine Posts</div>}
       {filtered.map((p) => {
         const author = getUser(p.authorId);
         const liked = p.likes?.includes(currentUser.id);
@@ -992,22 +1062,29 @@ function FeedScreen({
                 style={{ ...S.avatarSm, cursor: "pointer" }}
                 onClick={() => onViewUser(author)}
               >
-                {avatar(author)}
+                {avatarChar(author)}
               </div>
               <div style={{ flex: 1 }}>
-                <span
-                  style={{ color: "#fff", fontWeight: 600, cursor: "pointer" }}
+                <div
+                  style={{
+                    color: "#fff",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
                   onClick={() => onViewUser(author)}
                 >
-                  {author.username} {author.badge && BADGE_ICONS[author.badge]}
-                </span>
+                  {author.username}
+                  <Badge type={author.badge} />
+                </div>
                 <div style={{ fontSize: 11, color: "#666" }}>
                   {timeAgo(p.createdAt)}
                 </div>
               </div>
               {author.id !== currentUser.id && (
                 <button style={S.iconBtn} onClick={() => onMessage(author.id)}>
-                  💬
+                  <Icon name="send" size={14} color="#888" />
                 </button>
               )}
             </div>
@@ -1026,7 +1103,13 @@ function FeedScreen({
                 style={{ ...S.actionBtn, color: liked ? "#ef4444" : "#888" }}
                 onClick={() => onLike(p.id)}
               >
-                {liked ? "❤️" : "🤍"} {p.likes?.length || 0}
+                <Icon
+                  name="heart"
+                  size={16}
+                  color={liked ? "#ef4444" : "#555"}
+                  filled={liked}
+                />{" "}
+                {p.likes?.length || 0}
               </button>
               <button
                 style={S.actionBtn}
@@ -1034,7 +1117,8 @@ function FeedScreen({
                   setShowComment(showComment === p.id ? null : p.id)
                 }
               >
-                💬 {p.comments?.length || 0}
+                <Icon name="comment" size={16} color="#555" />{" "}
+                {p.comments?.length || 0}
               </button>
             </div>
             {showComment === p.id && (
@@ -1066,7 +1150,13 @@ function FeedScreen({
                     }}
                   />
                   <button
-                    style={{ ...S.btn, width: "auto", padding: "8px 16px" }}
+                    style={{
+                      ...S.btn,
+                      width: "auto",
+                      padding: "8px 14px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
                     onClick={() => {
                       if (commentText.trim()) {
                         onComment(p.id, commentText);
@@ -1074,7 +1164,7 @@ function FeedScreen({
                       }
                     }}
                   >
-                    ↵
+                    <Icon name="send" size={15} color="#fff" />
                   </button>
                 </div>
               </div>
@@ -1086,6 +1176,7 @@ function FeedScreen({
   );
 }
 
+// ── Explore ───────────────────────────────────────────────────────────────────
 function ExploreScreen({ currentUser, users, onViewUser }) {
   const [search, setSearch] = useState("");
   const [cat, setCat] = useState("all");
@@ -1101,7 +1192,7 @@ function ExploreScreen({ currentUser, users, onViewUser }) {
       <h2 style={S.heading}>Erkunden</h2>
       <input
         style={S.input}
-        placeholder="🔍 Nutzer suchen..."
+        placeholder="Nutzer suchen..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -1128,14 +1219,24 @@ function ExploreScreen({ currentUser, users, onViewUser }) {
       <div style={S.userGrid}>
         {filtered.map((u) => (
           <div key={u.id} style={S.userCard} onClick={() => onViewUser(u)}>
-            <div style={S.avatarLg}>{avatar(u)}</div>
-            <div style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>
-              {u.username} {u.badge && BADGE_ICONS[u.badge]}
+            <div style={S.avatarLg}>{avatarChar(u)}</div>
+            <div
+              style={{
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: 14,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {u.username}
+              <Badge type={u.badge} />
             </div>
             <div style={{ color: "#888", fontSize: 12, marginBottom: 8 }}>
               {u.plan}
             </div>
-            <div style={S.tagRow}>
+            <div style={{ ...S.tagRow, justifyContent: "center" }}>
               {u.categories?.slice(0, 3).map((c) => (
                 <span key={c} style={S.tag}>
                   {c}
@@ -1152,6 +1253,7 @@ function ExploreScreen({ currentUser, users, onViewUser }) {
   );
 }
 
+// ── Profile ───────────────────────────────────────────────────────────────────
 function ProfileScreen({
   viewUser,
   currentUser,
@@ -1172,27 +1274,29 @@ function ProfileScreen({
   const userPosts = posts.filter((p) => p.authorId === viewUser.id);
   const isFollowing = currentUser.following?.includes(viewUser.id);
   const getUser = (id) => users.find((u) => u.id === id);
-
   return (
     <div style={S.page}>
       <div style={S.profileHero}>
-        <div style={S.avatarXl}>{avatar(viewUser)}</div>
+        <div style={S.avatarXl}>{avatarChar(viewUser)}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2
             style={{
               margin: 0,
               color: "#fff",
               fontSize: "clamp(16px,4vw,22px)",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
             }}
           >
-            {viewUser.username}{" "}
-            {viewUser.badge && <span>{BADGE_ICONS[viewUser.badge]}</span>}
+            {viewUser.username}
+            <Badge type={viewUser.badge} />
           </h2>
           <div style={{ color: "#888", fontSize: 13, margin: "4px 0 8px" }}>
             {viewUser.plan === "pro"
-              ? "⭐ Pro"
+              ? "Pro"
               : viewUser.plan === "plus"
-                ? "✨ Plus"
+                ? "Plus"
                 : "Free"}
           </div>
           <p style={{ color: "#aaa", fontSize: 14, margin: "0 0 12px" }}>
@@ -1224,17 +1328,31 @@ function ProfileScreen({
                 style={{
                   ...(isFollowing ? S.btnOutline : S.btn),
                   width: "auto",
-                  padding: "9px 20px",
+                  padding: "9px 18px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                 }}
                 onClick={() => onFollow(viewUser.id)}
               >
+                <Icon
+                  name={isFollowing ? "unfollow" : "follow"}
+                  size={15}
+                  color={isFollowing ? "#4f9cf9" : "#fff"}
+                />
                 {isFollowing ? "Entfolgen" : "Folgen"}
               </button>
               <button
-                style={{ ...S.btnOutline, padding: "9px 20px" }}
+                style={{
+                  ...S.btnOutline,
+                  padding: "9px 18px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
                 onClick={() => onMessage(viewUser.id)}
               >
-                💬 Nachricht
+                <Icon name="send" size={15} color="#4f9cf9" /> Nachricht
               </button>
             </div>
           )}
@@ -1244,11 +1362,14 @@ function ProfileScreen({
                 ...S.btn,
                 marginTop: 14,
                 width: "auto",
-                padding: "9px 20px",
+                padding: "9px 18px",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
               }}
               onClick={() => setEditing(true)}
             >
-              ✏️ Bearbeiten
+              <Icon name="edit" size={15} color="#fff" /> Bearbeiten
             </button>
           )}
         </div>
@@ -1323,7 +1444,13 @@ function ProfileScreen({
                 style={{ ...S.actionBtn, color: liked ? "#ef4444" : "#888" }}
                 onClick={() => onLike(p.id)}
               >
-                {liked ? "❤️" : "🤍"} {p.likes?.length || 0}
+                <Icon
+                  name="heart"
+                  size={16}
+                  color={liked ? "#ef4444" : "#555"}
+                  filled={liked}
+                />{" "}
+                {p.likes?.length || 0}
               </button>
               <button
                 style={S.actionBtn}
@@ -1331,7 +1458,8 @@ function ProfileScreen({
                   setShowComment(showComment === p.id ? null : p.id)
                 }
               >
-                💬 {p.comments?.length || 0}
+                <Icon name="comment" size={16} color="#555" />{" "}
+                {p.comments?.length || 0}
               </button>
             </div>
             {showComment === p.id && (
@@ -1363,7 +1491,13 @@ function ProfileScreen({
                     }}
                   />
                   <button
-                    style={{ ...S.btn, width: "auto", padding: "8px 16px" }}
+                    style={{
+                      ...S.btn,
+                      width: "auto",
+                      padding: "8px 14px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
                     onClick={() => {
                       if (commentText.trim()) {
                         onComment(p.id, commentText);
@@ -1371,7 +1505,7 @@ function ProfileScreen({
                       }
                     }}
                   >
-                    ↵
+                    <Icon name="send" size={15} color="#fff" />
                   </button>
                 </div>
               </div>
@@ -1383,6 +1517,7 @@ function ProfileScreen({
   );
 }
 
+// ── Messages ──────────────────────────────────────────────────────────────────
 function MessagesScreen({
   currentUser,
   users,
@@ -1401,22 +1536,14 @@ function MessagesScreen({
     users.find(
       (u) => u.id === c.participants?.find((id) => id !== currentUser.id),
     );
-
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeConv]);
-
   return (
     <div style={{ display: "flex", height: "calc(100vh - 60px)" }}>
-      {/* Conv list – hidden on mobile when conv is open */}
       <div
-        style={{
-          ...S.convList,
-          ...(activeConv ? { display: "none" } : {}),
-          display: "flex",
-          flexDirection: "column",
-        }}
-        className="conv-list-panel"
+        style={{ ...S.convList, ...(activeConv ? { display: "none" } : {}) }}
+        className="conv-list"
       >
         <h3 style={{ color: "#fff", margin: "0 0 16px", fontSize: 16 }}>
           Nachrichten
@@ -1428,9 +1555,6 @@ function MessagesScreen({
           const other = getOther(c);
           if (!other) return null;
           const last = c.messages?.[c.messages.length - 1];
-          const unread = (c.messages || []).filter(
-            (m) => m.senderId !== currentUser.id,
-          ).length;
           return (
             <div
               key={c.id}
@@ -1440,10 +1564,18 @@ function MessagesScreen({
               }}
               onClick={() => setActiveConv(c)}
             >
-              <div style={S.avatarSm}>{avatar(other)}</div>
+              <div style={S.avatarSm}>{avatarChar(other)}</div>
               <div style={{ overflow: "hidden", flex: 1 }}>
-                <div style={{ color: "#fff", fontSize: 14 }}>
-                  {other.username} {other.badge && BADGE_ICONS[other.badge]}
+                <div
+                  style={{
+                    color: "#fff",
+                    fontSize: 14,
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  {other.username}
+                  <Badge type={other.badge} />
                 </div>
                 {last && (
                   <div
@@ -1480,14 +1612,14 @@ function MessagesScreen({
                 style={{
                   background: "none",
                   border: "none",
-                  color: "#888",
                   cursor: "pointer",
-                  fontSize: 18,
+                  display: "flex",
+                  alignItems: "center",
                   marginRight: 8,
                 }}
                 onClick={() => setActiveConv(null)}
               >
-                ←
+                <Icon name="back" size={20} color="#888" />
               </button>
               {(() => {
                 const other = getOther(activeConv);
@@ -1497,13 +1629,19 @@ function MessagesScreen({
                       style={{ ...S.avatarSm, cursor: "pointer" }}
                       onClick={() => onViewUser(other)}
                     >
-                      {avatar(other)}
+                      {avatarChar(other)}
                     </div>
                     <span
-                      style={{ color: "#fff", cursor: "pointer" }}
+                      style={{
+                        color: "#fff",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
                       onClick={() => onViewUser(other)}
                     >
-                      {other.username} {other.badge && BADGE_ICONS[other.badge]}
+                      {other.username}
+                      <Badge type={other.badge} />
                     </span>
                   </>
                 ) : null;
@@ -1551,7 +1689,13 @@ function MessagesScreen({
                 }}
               />
               <button
-                style={{ ...S.btn, width: "auto", padding: "12px 20px" }}
+                style={{
+                  ...S.btn,
+                  width: "auto",
+                  padding: "12px 18px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
                 onClick={() => {
                   if (text.trim()) {
                     onSend(activeConv.id, text);
@@ -1559,7 +1703,7 @@ function MessagesScreen({
                   }
                 }}
               >
-                ➤
+                <Icon name="send" size={18} color="#fff" />
               </button>
             </div>
           </>
@@ -1569,36 +1713,31 @@ function MessagesScreen({
   );
 }
 
+// ── Upgrade ───────────────────────────────────────────────────────────────────
 function UpgradeScreen({ currentUser, onUpgrade }) {
   const [selected, setSelected] = useState(null);
   const [step, setStep] = useState("choose");
   const [code, setCode] = useState("");
   const [inputCode, setInputCode] = useState("");
   const [error, setError] = useState("");
-
   const plans = [
     {
       id: "plus",
-      name: "Plus ✨",
+      name: "Plus",
       price: "5€",
       priceNum: 5,
       color: "#4f9cf9",
-      features: [
-        "20 Credits alle 48h",
-        "✨ Verification Badge",
-        "Alles aus Free",
-      ],
+      features: ["20 Credits alle 48h", "Verification Badge", "Alles aus Free"],
     },
     {
       id: "pro",
-      name: "Pro ⭐",
+      name: "Pro",
       price: "25€",
       priceNum: 25,
-      color: "#f59e0b",
-      features: ["Unbegrenzte Nachrichten", "⭐ Pro Badge", "Alles aus Plus"],
+      color: "#aaa",
+      features: ["Unbegrenzte Nachrichten", "Pro Badge", "Alles aus Plus"],
     },
   ];
-
   const startPayment = (plan) => {
     setSelected(plan);
     const c = "SN-" + Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -1607,13 +1746,9 @@ function UpgradeScreen({ currentUser, onUpgrade }) {
     setError("");
     setInputCode("");
   };
-
   const verify = () => {
     if (inputCode.trim().toUpperCase() === code) onUpgrade(selected.id);
-    else
-      setError(
-        "Falscher Code. Bitte sende den exakten Code aus dem PayPal-Betreff.",
-      );
+    else setError("Falscher Code.");
   };
 
   if (step === "pay")
@@ -1646,20 +1781,20 @@ function UpgradeScreen({ currentUser, onUpgrade }) {
                 marginBottom: 12,
               }}
             >
-              📋 So funktioniert es:
+              So funktioniert es:
             </div>
             <div style={{ color: "#aaa", fontSize: 14, lineHeight: 2 }}>
-              <div>1. Klicke auf „Zu PayPal" unten</div>
+              <div>1. Klicke auf „Zu PayPal"</div>
               <div>
                 2. Sende <b style={{ color: "#fff" }}>{selected.price}/Monat</b>{" "}
                 an <b style={{ color: "#fff" }}>paypal.me/AtaSocialNetwork</b>
               </div>
-              <div>3. Schreibe im Betreff deinen Code:</div>
+              <div>3. Schreibe im Betreff diesen Code:</div>
             </div>
             <div
               style={{
                 background: "#0a0a0a",
-                border: "1px solid #f59e0b",
+                border: "1px solid #555",
                 borderRadius: 10,
                 padding: "12px 20px",
                 textAlign: "center",
@@ -1667,13 +1802,13 @@ function UpgradeScreen({ currentUser, onUpgrade }) {
                 fontSize: 22,
                 fontWeight: 800,
                 letterSpacing: 4,
-                color: "#f59e0b",
+                color: "#fff",
               }}
             >
               {code}
             </div>
             <div style={{ color: "#aaa", fontSize: 14 }}>
-              4. Komm zurück und gib den Code unten ein
+              4. Komm zurück und gib den Code ein
             </div>
           </div>
           <a
@@ -1685,18 +1820,19 @@ function UpgradeScreen({ currentUser, onUpgrade }) {
               alignItems: "center",
               justifyContent: "center",
               gap: 10,
-              background: "#009cde",
+              background: "#1a1a1a",
+              border: "1px solid #333",
               borderRadius: 12,
-              padding: "14px",
+              padding: 14,
               color: "#fff",
-              textAlign: "center",
               fontWeight: 700,
               fontSize: 16,
               textDecoration: "none",
               marginBottom: 20,
             }}
           >
-            💳 Zu PayPal ({selected.price}/Monat)
+            <Icon name="card" size={20} color="#fff" /> Zu PayPal (
+            {selected.price}/Monat)
           </a>
           <input
             style={S.input}
@@ -1714,19 +1850,21 @@ function UpgradeScreen({ currentUser, onUpgrade }) {
             <button
               style={{
                 ...S.btn,
-                background: selected.color,
-                border: "none",
                 flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
               }}
               onClick={verify}
             >
-              ✓ Bestätigen
+              <Icon name="check" size={16} color="#fff" /> Bestätigen
             </button>
             <button
               style={{ ...S.btnOutline, padding: "12px 20px" }}
               onClick={() => setStep("choose")}
             >
-              ← Zurück
+              Zurück
             </button>
           </div>
         </div>
@@ -1735,7 +1873,7 @@ function UpgradeScreen({ currentUser, onUpgrade }) {
 
   return (
     <div style={S.page}>
-      <h2 style={S.heading}>Upgrade dein Konto</h2>
+      <h2 style={S.heading}>Upgrade</h2>
       <p style={{ color: "#888", marginBottom: 24 }}>
         Aktueller Plan: <b style={{ color: "#fff" }}>{currentUser.plan}</b>
       </p>
@@ -1760,13 +1898,24 @@ function UpgradeScreen({ currentUser, onUpgrade }) {
           Kostenlos
         </div>
         {["5 Credits alle 48h", "Posts & Likes", "Basis-Profil"].map((f) => (
-          <div key={f} style={{ color: "#666", fontSize: 14, marginBottom: 6 }}>
-            ✓ {f}
+          <div
+            key={f}
+            style={{
+              color: "#666",
+              fontSize: 14,
+              marginBottom: 6,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Icon name="check" size={13} color="#444" />
+            {f}
           </div>
         ))}
         {currentUser.plan === "free" && (
           <div style={{ marginTop: 12, color: "#555", fontWeight: 700 }}>
-            ✓ Aktiver Plan
+            Aktiver Plan
           </div>
         )}
       </div>
@@ -1778,12 +1927,12 @@ function UpgradeScreen({ currentUser, onUpgrade }) {
               flex: 1,
               minWidth: 200,
               background: "#111",
-              border: `2px solid ${currentUser.plan === p.id ? p.color : "#1e1e1e"}`,
+              border: `2px solid ${currentUser.plan === p.id ? "#444" : "#1e1e1e"}`,
               borderRadius: 20,
               padding: 24,
             }}
           >
-            <h3 style={{ color: p.color, margin: "0 0 6px" }}>{p.name}</h3>
+            <h3 style={{ color: "#fff", margin: "0 0 6px" }}>{p.name}</h3>
             <div
               style={{
                 color: "#fff",
@@ -1800,22 +1949,32 @@ function UpgradeScreen({ currentUser, onUpgrade }) {
             {p.features.map((f) => (
               <div
                 key={f}
-                style={{ color: "#aaa", fontSize: 14, marginBottom: 8 }}
+                style={{
+                  color: "#aaa",
+                  fontSize: 14,
+                  marginBottom: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
               >
-                ✓ {f}
+                <Icon name="check" size={13} color="#555" />
+                {f}
               </div>
             ))}
             {currentUser.plan === p.id ? (
-              <div style={{ marginTop: 20, color: p.color, fontWeight: 700 }}>
-                ✓ Aktiver Plan
+              <div style={{ marginTop: 20, color: "#aaa", fontWeight: 700 }}>
+                Aktiver Plan
               </div>
             ) : (
               <button
                 style={{
                   ...S.btn,
                   marginTop: 20,
-                  background: p.color,
+                  background: "#fff",
+                  color: "#000",
                   border: "none",
+                  fontWeight: 700,
                 }}
                 onClick={() => startPayment(p)}
               >
@@ -1829,6 +1988,7 @@ function UpgradeScreen({ currentUser, onUpgrade }) {
   );
 }
 
+// ── Admin Panel ───────────────────────────────────────────────────────────────
 function AdminPanel({ users, posts, onDelete, onSave }) {
   const [tab, setTab] = useState("users");
   const [search, setSearch] = useState("");
@@ -1837,10 +1997,9 @@ function AdminPanel({ users, posts, onDelete, onSave }) {
   const filtered = users.filter((u) =>
     u.username.toLowerCase().includes(search.toLowerCase()),
   );
-
   return (
     <div style={S.page}>
-      <h2 style={S.heading}>⚙️ Admin Panel</h2>
+      <h2 style={S.heading}>Admin Panel</h2>
       <div style={S.filterBar}>
         <button
           style={{
@@ -1865,7 +2024,7 @@ function AdminPanel({ users, posts, onDelete, onSave }) {
         <>
           <input
             style={S.input}
-            placeholder="🔍 Nutzer suchen..."
+            placeholder="Nutzer suchen..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -1880,10 +2039,18 @@ function AdminPanel({ users, posts, onDelete, onSave }) {
                 flexWrap: "wrap",
               }}
             >
-              <div style={S.avatarSm}>{avatar(u)}</div>
+              <div style={S.avatarSm}>{avatarChar(u)}</div>
               <div style={{ flex: 1, minWidth: 120 }}>
-                <div style={{ color: "#fff", fontWeight: 600 }}>
-                  {u.username} {u.badge && BADGE_ICONS[u.badge]}
+                <div
+                  style={{
+                    color: "#fff",
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  {u.username}
+                  <Badge type={u.badge} />
                 </div>
                 <div style={{ color: "#888", fontSize: 12 }}>
                   {u.email} · {u.plan}
@@ -1916,10 +2083,10 @@ function AdminPanel({ users, posts, onDelete, onSave }) {
                   }
                 >
                   <option value="">Kein Badge</option>
-                  <option value="verified">✔️ Verifiziert</option>
-                  <option value="plus">✨ Plus</option>
-                  <option value="pro">⭐ Pro</option>
-                  <option value="admin">⚙️ Admin</option>
+                  <option value="verified">Verifiziert</option>
+                  <option value="plus">Plus</option>
+                  <option value="pro">Pro</option>
+                  <option value="admin">Admin</option>
                 </select>
                 <button
                   style={{
@@ -1940,7 +2107,7 @@ function AdminPanel({ users, posts, onDelete, onSave }) {
                 </button>
                 {u.id !== "admin" && (
                   <button style={S.deleteBtn} onClick={() => onDelete(u.id)}>
-                    🗑️
+                    <Icon name="trash" size={15} color="#ef4444" />
                   </button>
                 )}
               </div>
@@ -1958,7 +2125,7 @@ function AdminPanel({ users, posts, onDelete, onSave }) {
               </div>
               <div style={{ color: "#e0e0e0" }}>{p.text}</div>
               <div style={{ color: "#666", fontSize: 12, marginTop: 8 }}>
-                ❤️ {p.likes?.length} · 💬 {p.comments?.length}
+                {p.likes?.length} Likes · {p.comments?.length} Kommentare
               </div>
             </div>
           );
@@ -1967,35 +2134,13 @@ function AdminPanel({ users, posts, onDelete, onSave }) {
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
 const S = {
   root: {
     minHeight: "100vh",
     background: "#0a0a0a",
     fontFamily: "'DM Sans', sans-serif",
     color: "#fff",
-  },
-  publicBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "14px 20px",
-    borderBottom: "1px solid #1e1e1e",
-    background: "#111",
-    position: "sticky",
-    top: 0,
-    zIndex: 100,
-  },
-  publicHero: {
-    textAlign: "center",
-    padding: "40px 20px 32px",
-    background: "linear-gradient(180deg,#111 0%,#0a0a0a 100%)",
-    borderBottom: "1px solid #1e1e1e",
-  },
-  layout: {
-    display: "flex",
-    height: "calc(100vh - 60px)",
-    overflow: "hidden",
-    flexDirection: "column",
   },
   loader: {
     display: "flex",
@@ -2007,13 +2152,13 @@ const S = {
   spinner: {
     width: 40,
     height: 40,
-    border: "3px solid #333",
-    borderTop: "3px solid #4f9cf9",
+    border: "3px solid #222",
+    borderTop: "3px solid #fff",
     borderRadius: "50%",
     animation: "spin 1s linear infinite",
   },
-  // Mobile top bar
-  mobileBar: {
+  // Top bar – z 100
+  topBar: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -2022,17 +2167,19 @@ const S = {
     borderBottom: "1px solid #1e1e1e",
     position: "sticky",
     top: 0,
-    zIndex: 200,
+    zIndex: 100,
   },
+  logo: { fontSize: 20, fontWeight: 800, color: "#fff", letterSpacing: -0.5 },
   hamburger: {
     background: "none",
-    border: "1px solid #333",
+    border: "1px solid #2a2a2a",
     borderRadius: 8,
-    color: "#fff",
-    fontSize: 18,
-    padding: "4px 12px",
+    padding: "5px 10px",
     cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
   },
+  // Sidebar – z 300 (above header)
   sidebar: {
     position: "fixed",
     top: 0,
@@ -2048,20 +2195,14 @@ const S = {
     overflowY: "auto",
     transform: "translateX(-100%)",
     transition: "transform 0.25s ease",
-    zIndex: 150,
+    zIndex: 300,
   },
   sidebarOpen: { transform: "translateX(0)" },
   overlay: {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,0.6)",
-    zIndex: 140,
-  },
-  logo: {
-    fontSize: 20,
-    fontWeight: 800,
-    color: "#4f9cf9",
-    letterSpacing: -0.5,
+    background: "rgba(0,0,0,0.7)",
+    zIndex: 200,
   },
   sideUserCard: {
     display: "flex",
@@ -2071,11 +2212,12 @@ const S = {
     background: "#1a1a1a",
     borderRadius: 12,
     marginBottom: 10,
+    marginTop: 8,
   },
   navBtn: {
     background: "none",
     border: "none",
-    color: "#888",
+    color: "#666",
     padding: "10px 12px",
     borderRadius: 10,
     cursor: "pointer",
@@ -2087,19 +2229,20 @@ const S = {
     width: "100%",
     textAlign: "left",
   },
-  navBtnActive: { background: "#1a2a3a", color: "#4f9cf9" },
+  navBtnActive: { background: "#1a1a1a", color: "#fff" },
   logoutBtn: {
     background: "none",
-    border: "1px solid #333",
-    color: "#666",
+    border: "1px solid #222",
+    color: "#555",
     padding: "9px 12px",
     borderRadius: 10,
     cursor: "pointer",
     fontSize: 13,
     marginTop: "auto",
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
   },
-  main: { flex: 1, overflowY: "auto", paddingBottom: 70, width: "100%" },
-  // Notification badge
   badge: {
     position: "absolute",
     top: -6,
@@ -2127,7 +2270,9 @@ const S = {
     minWidth: 14,
     textAlign: "center",
   },
-  // Bottom nav for mobile
+  // Main
+  main: { minHeight: "calc(100vh - 60px)", paddingBottom: 70 },
+  // Bottom nav
   bottomNav: {
     position: "fixed",
     bottom: 0,
@@ -2143,14 +2288,33 @@ const S = {
   bottomNavBtn: {
     background: "none",
     border: "none",
-    color: "#666",
-    fontSize: 22,
     cursor: "pointer",
     padding: "4px 12px",
     borderRadius: 10,
     position: "relative",
+    display: "flex",
+    alignItems: "center",
   },
-  bottomNavBtnActive: { color: "#4f9cf9" },
+  bottomNavActive: {},
+  // Public
+  publicBar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "14px 20px",
+    borderBottom: "1px solid #1e1e1e",
+    background: "#111",
+    position: "sticky",
+    top: 0,
+    zIndex: 100,
+  },
+  publicHero: {
+    textAlign: "center",
+    padding: "40px 20px 32px",
+    background: "linear-gradient(180deg,#111 0%,#0a0a0a 100%)",
+    borderBottom: "1px solid #1e1e1e",
+  },
+  // Auth
   authWrap: {
     minHeight: "100vh",
     display: "flex",
@@ -2169,11 +2333,12 @@ const S = {
   authLogo: {
     fontSize: 28,
     fontWeight: 800,
-    color: "#4f9cf9",
+    color: "#fff",
     textAlign: "center",
     marginBottom: 6,
     letterSpacing: -1,
   },
+  // Content
   page: { padding: "20px 16px", maxWidth: 720, margin: "0 auto" },
   composer: {
     background: "#111",
@@ -2213,21 +2378,21 @@ const S = {
   },
   btn: {
     width: "100%",
-    background: "#4f9cf9",
+    background: "#fff",
     border: "none",
     borderRadius: 10,
-    padding: "12px",
-    color: "#fff",
+    padding: 12,
+    color: "#000",
     fontSize: 14,
-    fontWeight: 600,
+    fontWeight: 700,
     cursor: "pointer",
   },
   btnOutline: {
     background: "none",
-    border: "1px solid #4f9cf9",
+    border: "1px solid #333",
     borderRadius: 10,
     padding: "10px 20px",
-    color: "#4f9cf9",
+    color: "#fff",
     fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
@@ -2238,14 +2403,14 @@ const S = {
     border: "1px solid #2a2a2a",
     borderRadius: 20,
     padding: "5px 13px",
-    color: "#888",
+    color: "#666",
     fontSize: 12,
     cursor: "pointer",
   },
   catBtnActive: {
-    background: "#1a2a4a",
-    border: "1px solid #4f9cf9",
-    color: "#4f9cf9",
+    background: "#2a2a2a",
+    border: "1px solid #555",
+    color: "#fff",
   },
   filterBar: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 },
   filterBtn: {
@@ -2253,21 +2418,17 @@ const S = {
     border: "1px solid #2a2a2a",
     borderRadius: 20,
     padding: "5px 12px",
-    color: "#888",
+    color: "#666",
     fontSize: 12,
     cursor: "pointer",
   },
-  filterBtnActive: {
-    background: "#4f9cf9",
-    borderColor: "#4f9cf9",
-    color: "#fff",
-  },
+  filterBtnActive: { background: "#fff", borderColor: "#fff", color: "#000" },
   heading: { color: "#fff", margin: "0 0 16px", fontSize: 18, fontWeight: 700 },
   card: {
     background: "#111",
     border: "1px solid #1e1e1e",
     borderRadius: 16,
-    padding: "16px",
+    padding: 16,
     marginBottom: 12,
   },
   postHeader: {
@@ -2277,7 +2438,7 @@ const S = {
     marginBottom: 10,
   },
   postText: {
-    color: "#ddd",
+    color: "#ccc",
     fontSize: 15,
     lineHeight: 1.65,
     margin: "0 0 10px",
@@ -2286,34 +2447,36 @@ const S = {
   actionBtn: {
     background: "none",
     border: "none",
-    color: "#888",
+    color: "#555",
     cursor: "pointer",
     fontSize: 14,
     display: "flex",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
     padding: 0,
   },
   iconBtn: {
     background: "none",
-    border: "1px solid #333",
+    border: "1px solid #2a2a2a",
     borderRadius: 8,
     padding: "4px 10px",
     cursor: "pointer",
     marginLeft: "auto",
-    color: "#888",
+    color: "#666",
+    display: "flex",
+    alignItems: "center",
   },
   tagRow: { display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 },
   tag: {
-    background: "#0d1f33",
-    border: "1px solid #1e3a5a",
-    color: "#4f9cf9",
+    background: "#1a1a1a",
+    border: "1px solid #2a2a2a",
+    color: "#888",
     borderRadius: 20,
     padding: "3px 10px",
     fontSize: 11,
   },
   comment: {
-    color: "#999",
+    color: "#888",
     fontSize: 13,
     padding: "6px 0",
     borderBottom: "1px solid #1e1e1e",
@@ -2322,37 +2485,40 @@ const S = {
     width: 36,
     height: 36,
     borderRadius: "50%",
-    background: "linear-gradient(135deg,#4f9cf9,#a78bfa)",
+    background: "#2a2a2a",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontWeight: 700,
     fontSize: 15,
     flexShrink: 0,
+    color: "#fff",
   },
   avatarLg: {
     width: 54,
     height: 54,
     borderRadius: "50%",
-    background: "linear-gradient(135deg,#4f9cf9,#a78bfa)",
+    background: "#2a2a2a",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontWeight: 700,
     fontSize: 22,
     margin: "0 auto 10px",
+    color: "#fff",
   },
   avatarXl: {
     width: 70,
     height: 70,
     borderRadius: "50%",
-    background: "linear-gradient(135deg,#4f9cf9,#a78bfa)",
+    background: "#2a2a2a",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontWeight: 700,
     fontSize: 28,
     flexShrink: 0,
+    color: "#fff",
   },
   profileHero: {
     background: "#111",
@@ -2366,7 +2532,7 @@ const S = {
   },
   userGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))",
     gap: 12,
   },
   userCard: {
@@ -2394,7 +2560,7 @@ const S = {
     cursor: "pointer",
     marginBottom: 4,
   },
-  convItemActive: { background: "#1a2a3a" },
+  convItemActive: { background: "#1a1a1a" },
   chatHeader: {
     display: "flex",
     alignItems: "center",
@@ -2403,7 +2569,7 @@ const S = {
     borderBottom: "1px solid #1e1e1e",
     background: "#111",
   },
-  msgArea: { flex: 1, overflowY: "auto", padding: "16px" },
+  msgArea: { flex: 1, overflowY: "auto", padding: 16 },
   msgInput: {
     display: "flex",
     gap: 10,
@@ -2418,14 +2584,10 @@ const S = {
     fontSize: 14,
     lineHeight: 1.5,
   },
-  bubbleMe: {
-    background: "#4f9cf9",
-    color: "#fff",
-    borderBottomRightRadius: 4,
-  },
+  bubbleMe: { background: "#fff", color: "#000", borderBottomRightRadius: 4 },
   bubbleThem: {
     background: "#1a1a1a",
-    color: "#e0e0e0",
+    color: "#ccc",
     border: "1px solid #2a2a2a",
     borderBottomLeftRadius: 4,
   },
@@ -2440,18 +2602,18 @@ const S = {
   },
   deleteBtn: {
     background: "none",
-    border: "1px solid #ef4444",
+    border: "1px solid #333",
     borderRadius: 8,
     padding: "7px 12px",
     cursor: "pointer",
-    color: "#ef4444",
-    fontSize: 14,
+    display: "flex",
+    alignItems: "center",
   },
   toast: {
     position: "fixed",
     bottom: 80,
     right: 16,
-    color: "#fff",
+    color: "#000",
     padding: "12px 20px",
     borderRadius: 12,
     fontWeight: 600,
@@ -2461,7 +2623,7 @@ const S = {
   },
   empty: {
     textAlign: "center",
-    color: "#555",
+    color: "#444",
     padding: "60px 20px",
     fontSize: 15,
   },
@@ -2471,22 +2633,22 @@ const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0a0a0a; }
-  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   button { transition: opacity 0.15s; font-family: 'DM Sans', sans-serif; }
-  button:hover { opacity: 0.82; }
-  input:focus, textarea:focus { border-color: #4f9cf9 !important; }
+  button:hover { opacity: 0.75; }
+  input:focus, textarea:focus { border-color: #444 !important; outline: none; }
 
-  /* Desktop: sidebar immer sichtbar, mobileBar und bottomNav versteckt */
+  /* Desktop: hide bottom nav */
   @media (min-width: 768px) {
-    .mobile-bar-hide { display: none !important; }
-    [data-mobile-bar] { display: none !important; }
+    .bottom-nav { display: none !important; }
+    main { padding-bottom: 0 !important; }
   }
 
-  /* Mobile: sidebar als Overlay */
+  /* Mobile: conv list full width */
   @media (max-width: 767px) {
-    .conv-list-panel { width: 100% !important; min-width: unset !important; }
+    .conv-list { width: 100% !important; min-width: unset !important; }
   }
 `;
