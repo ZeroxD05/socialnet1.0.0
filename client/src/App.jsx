@@ -863,6 +863,16 @@ function LoginScreen({ onLogin, onSwitch }) {
             Registrieren
           </span>
         </p>
+        <p
+          style={{
+            textAlign: "center",
+            color: "#555",
+            fontSize: 12,
+            marginTop: 10,
+          }}
+        >
+          Admin: atahh2005@gmail.com / Atailayda05
+        </p>
       </div>
     </div>
   );

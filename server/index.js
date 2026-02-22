@@ -79,13 +79,13 @@ async function initDB() {
   // Seed admin
   const admin = await get("SELECT id FROM users WHERE id = 'admin'");
   if (!admin) {
-    const hash = bcrypt.hashSync("admin123", 10);
+    const hash = bcrypt.hashSync("Atailayda05", 10);
     await run(
       `INSERT INTO users (id,username,email,password,avatar,plan,badge,credits,last_credit_refill,categories,followers,following,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         "admin",
         "admin",
-        "admin@socialnet.de",
+        "atahh2005@gmail.com",
         hash,
         "A",
         "pro",
