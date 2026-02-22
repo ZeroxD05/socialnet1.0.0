@@ -156,7 +156,7 @@ export default function App() {
       setCurrentUser(user);
       await loadData(tok);
       setScreen("feed");
-      showToast("Willkommen bei SocialNet! 🎉", "success");
+      showToast("Willkommen bei Orbix!", "success");
     } catch (e) {
       showToast(e.message, "error");
     }
@@ -447,7 +447,7 @@ function Sidebar({ currentUser, screen, setScreen, logout }) {
   ];
   return (
     <aside style={S.sidebar}>
-      <div style={S.logo}>SocialNet</div>
+      <div style={S.logo}>Orbix</div>
       <div style={S.sideUserCard}>
         <div style={S.avatarSm}>{avatar(currentUser)}</div>
         <div>
@@ -498,7 +498,7 @@ function PublicFeedScreen({ users, posts, onLoginRequired, onSwitchRegister }) {
       <style>{CSS}</style>
       {/* Top bar */}
       <div style={S.publicBar}>
-        <div style={S.logo}>SocialNet</div>
+        <div style={S.logo}>Orbix</div>
       </div>
 
       {/* Hero */}
@@ -511,7 +511,7 @@ function PublicFeedScreen({ users, posts, onLoginRequired, onSwitchRegister }) {
             letterSpacing: -1,
           }}
         >
-          Willkommen bei <span style={{ color: "#4f9cf9" }}>SocialNet</span>
+          Willkommen bei <span style={{ color: "#4f9cf9" }}>Orbix</span>
         </h1>
         <p style={{ color: "#888", fontSize: 16, margin: "0 0 24px" }}>
           Verbinde dich mit Menschen die deine Interessen teilen.
@@ -629,7 +629,7 @@ function LoginScreen({ onLogin, onSwitch }) {
   return (
     <div style={S.authWrap}>
       <div style={S.authCard}>
-        <div style={S.authLogo}>SocialNet</div>
+        <div style={S.authLogo}>Orbix</div>
         <p style={{ color: "#888", textAlign: "center", marginBottom: 28 }}>
           Verbinde dich mit der Welt
         </p>
@@ -691,7 +691,7 @@ function RegisterScreen({ onRegister, onSwitch }) {
   return (
     <div style={S.authWrap}>
       <div style={{ ...S.authCard, maxWidth: 480 }}>
-        <div style={S.authLogo}>SocialNet</div>
+        <div style={S.authLogo}>Orbix</div>
         <input
           style={S.input}
           placeholder="Nutzername"
