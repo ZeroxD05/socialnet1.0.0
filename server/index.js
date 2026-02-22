@@ -125,6 +125,9 @@ const parseUser = (u) =>
   u
     ? {
         ...u,
+        lastCreditRefill: u.last_credit_refill,
+        planExpires: u.plan_expires,
+        createdAt: u.created_at,
         categories: JSON.parse(u.categories || "[]"),
         followers: JSON.parse(u.followers || "[]"),
         following: JSON.parse(u.following || "[]"),
@@ -135,6 +138,8 @@ const parsePost = (p) =>
   p
     ? {
         ...p,
+        authorId: p.author_id,
+        createdAt: p.created_at,
         categories: JSON.parse(p.categories || "[]"),
         likes: JSON.parse(p.likes || "[]"),
         comments: JSON.parse(p.comments || "[]"),
@@ -158,7 +163,12 @@ async function checkAndRefillCredits(user) {
       Date.now(),
       user.id,
     ]);
-    return { ...user, credits, last_credit_refill: Date.now() };
+    return {
+      ...user,
+      credits,
+      last_credit_refill: Date.now(),
+      lastCreditRefill: Date.now(),
+    };
   }
   return user;
 }
@@ -170,7 +180,14 @@ async function checkPlanExpiry(user) {
       "UPDATE users SET plan='free', badge='', credits=5, plan_expires=0 WHERE id=?",
       [user.id],
     );
-    return { ...user, plan: "free", badge: "", credits: 5, plan_expires: 0 };
+    return {
+      ...user,
+      plan: "free",
+      badge: "",
+      credits: 5,
+      plan_expires: 0,
+      planExpires: 0,
+    };
   }
   return user;
 }
@@ -305,14 +322,13 @@ app.post("/api/users/:id/follow", auth, async (req, res) => {
   }
 });
 
-// Admin
+// ── Admin Routes ──────────────────────────────────────────────────────────────
 app.patch("/api/admin/users/:id", auth, async (req, res) => {
   try {
     const me = await get("SELECT id FROM users WHERE id=?", [req.user.id]);
     if (me.id !== "admin") return res.status(403).json({ error: "Kein Admin" });
     const { plan, badge } = req.body;
     const credits = plan === "pro" ? 999999 : plan === "plus" ? 20 : 5;
-    // Set expiry to end of next month for paid plans
     const expires = plan !== "free" ? Date.now() + 30 * 24 * 3600 * 1000 : 0;
     await run(
       "UPDATE users SET plan=?, badge=?, credits=?, plan_expires=? WHERE id=?",
@@ -494,7 +510,7 @@ app.post("/api/conversations/:id/messages", auth, async (req, res) => {
   }
 });
 
-// Serve frontend in production
+// ── Serve Frontend in Production ──────────────────────────────────────────────
 if (process.env.NODE_ENV === "production") {
   const fs = require("fs");
   const distPath = path.join(__dirname, "../client/dist");
