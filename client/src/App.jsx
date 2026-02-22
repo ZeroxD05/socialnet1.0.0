@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-const API = "/api";
+const API = window.location.origin + "/api";
 const CATEGORIES = [
   "Tech",
   "Gaming",
