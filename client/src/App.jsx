@@ -499,14 +499,6 @@ function PublicFeedScreen({ users, posts, onLoginRequired, onSwitchRegister }) {
       {/* Top bar */}
       <div style={S.publicBar}>
         <div style={S.logo}>SocialNet</div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button style={S.btnOutline} onClick={onLoginRequired}>
-            Einloggen
-          </button>
-          <button style={S.btn} onClick={onSwitchRegister}>
-            Registrieren
-          </button>
-        </div>
       </div>
 
       {/* Hero */}
