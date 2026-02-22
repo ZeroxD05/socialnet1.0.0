@@ -436,13 +436,13 @@ function Toast({ toast }) {
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 function Sidebar({ currentUser, screen, setScreen, logout }) {
   const items = [
-    { id: "feed", icon: "🏠", label: "Feed" },
-    { id: "explore", icon: "🔍", label: "Erkunden" },
-    { id: "messages", icon: "💬", label: "Nachrichten" },
-    { id: "profile", icon: "👤", label: "Profil" },
-    { id: "upgrade", icon: "⭐", label: "Upgrade" },
+    { id: "feed", icon: "", label: "Feed" },
+    { id: "explore", icon: "", label: "Erkunden" },
+    { id: "messages", icon: "", label: "Nachrichten" },
+    { id: "profile", icon: "", label: "Profil" },
+    { id: "upgrade", icon: "", label: "Upgrade" },
     ...(currentUser.id === "admin"
-      ? [{ id: "admin", icon: "⚙️", label: "Admin" }]
+      ? [{ id: "admin", icon: "", label: "Admin" }]
       : []),
   ];
   return (
@@ -478,7 +478,7 @@ function Sidebar({ currentUser, screen, setScreen, logout }) {
         ))}
       </nav>
       <button style={S.logoutBtn} onClick={logout}>
-        🚪 Abmelden
+        Abmelden
       </button>
     </aside>
   );
@@ -562,9 +562,7 @@ function PublicFeedScreen({ users, posts, onLoginRequired, onSwitchRegister }) {
           ))}
         </div>
 
-        {filtered.length === 0 && (
-          <div style={S.empty}>Noch keine Posts 🌙</div>
-        )}
+        {filtered.length === 0 && <div style={S.empty}>Noch keine Posts</div>}
         {filtered.map((p) => {
           const author = getUser(p.authorId);
           if (!author) return null;
@@ -846,7 +844,7 @@ function FeedScreen({
         ))}
       </div>
 
-      {filtered.length === 0 && <div style={S.empty}>Keine Posts 🌙</div>}
+      {filtered.length === 0 && <div style={S.empty}>Keine Posts</div>}
       {filtered.map((p) => {
         const author = getUser(p.authorId);
         if (!author) return null;
@@ -968,7 +966,7 @@ function ExploreScreen({ currentUser, users, onViewUser }) {
       <h2 style={S.heading}>Erkunden</h2>
       <input
         style={S.input}
-        placeholder="🔍 Nutzer suchen..."
+        placeholder="Nutzer suchen..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -1403,7 +1401,7 @@ function UpgradeScreen({ currentUser, onUpgrade }) {
   const plans = [
     {
       id: "plus",
-      name: "Plus ✨",
+      name: "Plus",
       price: "5€",
       priceNum: 5,
       color: "#4f9cf9",
@@ -1415,7 +1413,7 @@ function UpgradeScreen({ currentUser, onUpgrade }) {
     },
     {
       id: "pro",
-      name: "Pro ⭐",
+      name: "Pro",
       price: "25€",
       priceNum: 25,
       color: "#f59e0b",
@@ -1684,7 +1682,7 @@ function AdminPanel({ users, posts, onDelete, onSave }) {
 
   return (
     <div style={S.page}>
-      <h2 style={S.heading}>⚙️ Admin Panel</h2>
+      <h2 style={S.heading}>Admin Panel</h2>
       <div style={S.filterBar}>
         <button
           style={{
@@ -1710,7 +1708,7 @@ function AdminPanel({ users, posts, onDelete, onSave }) {
         <>
           <input
             style={S.input}
-            placeholder="🔍 Nutzer suchen..."
+            placeholder="Nutzer suchen..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
