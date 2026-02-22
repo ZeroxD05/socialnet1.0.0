@@ -247,7 +247,7 @@ export default function App() {
       setCurrentUser(user);
       await loadData(tok);
       setScreen("feed");
-      showToast("Willkommen bei SocialNet!", "success");
+      showToast("Willkommen bei Orbix!", "success");
     } catch (e) {
       showToast(e.message, "error");
     }
@@ -472,7 +472,7 @@ export default function App() {
             marginBottom: 16,
           }}
         >
-          <div style={S.logo}>SocialNet</div>
+          <div style={S.logo}>Orbix</div>
           <button
             style={{
               background: "none",
@@ -549,7 +549,7 @@ export default function App() {
 
       {/* Top bar – z-index 100 */}
       <div style={S.topBar}>
-        <div style={S.logo}>SocialNet</div>
+        <div style={S.logo}>Orbix</div>
         <button style={S.hamburger} onClick={() => setMenuOpen((o) => !o)}>
           <Icon name="menu" size={20} color="#fff" />
         </button>
@@ -678,7 +678,7 @@ function PublicFeedScreen({ users, posts, onLoginRequired, onSwitchRegister }) {
     <div style={S.root}>
       <style>{CSS}</style>
       <div style={S.publicBar}>
-        <div style={S.logo}>SocialNet</div>
+        <div style={S.logo}>Orbix</div>
         <div style={{ display: "flex", gap: 10 }}>
           <button
             style={{ ...S.btnOutline, padding: "8px 16px" }}
@@ -703,7 +703,7 @@ function PublicFeedScreen({ users, posts, onLoginRequired, onSwitchRegister }) {
             letterSpacing: -1,
           }}
         >
-          Willkommen bei <span style={{ color: "#4f9cf9" }}>SocialNet</span>
+          Willkommen bei <span style={{ color: "#4f9cf9" }}>Orbix</span>
         </h1>
         <p style={{ color: "#888", fontSize: 15, margin: "0 0 20px" }}>
           Verbinde dich mit Menschen die deine Interessen teilen.
@@ -824,7 +824,7 @@ function LoginScreen({ onLogin, onSwitch }) {
   return (
     <div style={S.authWrap}>
       <div style={S.authCard}>
-        <div style={S.authLogo}>SocialNet</div>
+        <div style={S.authLogo}>Orbix</div>
         <p style={{ color: "#888", textAlign: "center", marginBottom: 24 }}>
           Verbinde dich mit der Welt
         </p>
@@ -863,16 +863,6 @@ function LoginScreen({ onLogin, onSwitch }) {
             Registrieren
           </span>
         </p>
-        <p
-          style={{
-            textAlign: "center",
-            color: "#555",
-            fontSize: 12,
-            marginTop: 10,
-          }}
-        >
-          Admin: admin@socialnet.de / admin123
-        </p>
       </div>
     </div>
   );
@@ -896,7 +886,7 @@ function RegisterScreen({ onRegister, onSwitch }) {
   return (
     <div style={S.authWrap}>
       <div style={{ ...S.authCard, maxWidth: 480 }}>
-        <div style={S.authLogo}>SocialNet</div>
+        <div style={S.authLogo}>Orbix</div>
         <input
           style={S.input}
           placeholder="Nutzername"
