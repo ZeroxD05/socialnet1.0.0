@@ -2422,7 +2422,7 @@ const S = {
     fontSize: 12,
     cursor: "pointer",
   },
-  filterBtnActive: { background: "#fff", , color: "#000" },
+  filterBtnActive: { background: "#fff", color: "#000" },
   heading: { color: "#fff", margin: "0 0 16px", fontSize: 18, fontWeight: 700 },
   card: {
     background: "#111",
